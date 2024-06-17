@@ -20,6 +20,26 @@ def index():
     return "A centralized chat server for CIM clients. This is not a web interface."
 
 
+@app.route("/health")
+def health():
+    return "ok"
+
+
+@app.route("/type")
+def type_():
+    return "server"
+
+
+@app.route("/version")
+def version():
+    return VERSION
+
+
+@app.route("/motd")
+def motd():
+    return MOTD
+
+
 @socketio.on("connect")
 def handle_connect():
     print(f"Client {request.sid} connected")
@@ -84,6 +104,7 @@ def handle_message(data):
             "sender": clients[request.sid].username,
         },
         broadcast=True,
+        include_self=True,
     )
 
 
@@ -106,6 +127,7 @@ def handle_update_username(data):
         "username_update_broadcast",
         {**DEFAULT_DATA, "old": client.username, "new": data},
         broadcast=True,
+        include_self=True,
     )
     client.username = data
 
