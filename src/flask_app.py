@@ -69,7 +69,7 @@ def handle_connect():
             **DEFAULT_DATA,
             "success": True,
             "motd": MOTD,
-            "flags": [],
+            "flags": flags,
             "username": username,
             **additional_data,
         },
