@@ -1,6 +1,6 @@
 import secrets
 
-from flask import Flask, request
+from flask import Flask, request, jsonify
 from flask_socketio import SocketIO, emit, disconnect
 
 from client import Client
@@ -40,12 +40,17 @@ def motd():
     return MOTD
 
 
+@app.route("/online")
+def online():
+    return jsonify([i.username for i in clients.values()])
+
+
 @socketio.on("connect")
 def handle_connect():
     print(f"Client {request.sid} connected")
-    version = request.headers.get("client-version")
+    client_version = request.headers.get("client-version")
     username = request.headers.get("username")
-    if version is None:
+    if client_version is None:
         emit(
             "connect_response",
             {**DEFAULT_DATA, "success": False, "flags": ["version_missing"]},
@@ -62,7 +67,7 @@ def handle_connect():
         flags.append("username_taken")
         username = f"{username}-{secrets.token_hex(4)}"
 
-    clients[request.sid] = Client(request.sid, version, username)
+    clients[request.sid] = Client(request.sid, client_version, username)
     emit(
         "connect_response",
         {
