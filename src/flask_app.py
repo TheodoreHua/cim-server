@@ -1,4 +1,5 @@
 import secrets
+import re
 
 from flask import Flask, request, jsonify
 from flask_socketio import SocketIO, emit, disconnect
@@ -12,7 +13,8 @@ socketio = SocketIO(app)
 clients = {}
 
 MOTD = "Welcome to the CIM server!"
-LENGTH_LIMIT = 10  # characters in a message
+LENGTH_LIMIT = 10_000  # characters in a message
+USERNAME_REGEX = r"^[a-zA-Z0-9_-]{3,24}$"
 DEFAULT_DATA = {"server_version": VERSION}
 
 
@@ -63,6 +65,9 @@ def handle_connect():
 
     if username is None:
         flags.append("username_missing")
+        username = f"Anonymous-{secrets.token_hex(4)}"
+    elif not re.fullmatch(USERNAME_REGEX, username):
+        flags.append("username_invalid")
         username = f"Anonymous-{secrets.token_hex(4)}"
     elif any(client.username == username for client in clients.values()):
         flags.append("username_taken")
@@ -140,7 +145,35 @@ def handle_update_username(data):
             },
         )
         return disconnect()
+
     client = clients[request.sid]
+    if data is None:
+        emit(
+            "username_update_response",
+            {
+                **DEFAULT_DATA,
+                "success": False,
+                "flags": ["username_missing"],
+            },
+        )
+        return
+    if not re.fullmatch(USERNAME_REGEX, data):
+        emit(
+            "username_update_response",
+            {**DEFAULT_DATA, "success": False, "flags": ["username_invalid"]},
+        )
+        return
+    if any(client.username == data for client in clients.values()):
+        emit(
+            "username_update_response",
+            {**DEFAULT_DATA, "success": False, "flags": ["username_taken"]},
+        )
+        return
+
+    emit(
+        "username_update_response",
+        {**DEFAULT_DATA, "success": True, "username": data},
+    )
     emit(
         "username_update_broadcast",
         {**DEFAULT_DATA, "old": client.username, "new": data},
