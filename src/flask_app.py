@@ -12,6 +12,7 @@ socketio = SocketIO(app)
 clients = {}
 
 MOTD = "Welcome to the CIM server!"
+LENGTH_LIMIT = 10  # characters in a message
 DEFAULT_DATA = {"server_version": VERSION}
 
 
@@ -74,6 +75,7 @@ def handle_connect():
             **DEFAULT_DATA,
             "success": True,
             "motd": MOTD,
+            "length_limit": LENGTH_LIMIT,
             "flags": flags,
             "username": username,
             **additional_data,
@@ -101,6 +103,17 @@ def handle_message(data):
             },
         )
         return disconnect()
+    if len(data["message"]) > LENGTH_LIMIT:
+        emit(
+            "global_error",
+            {
+                **DEFAULT_DATA,
+                "fatal": False,
+                "type": "message_too_long",
+                "message": "Message too long.",
+            },
+        )
+        return
     emit(
         "message_broadcast",
         {
