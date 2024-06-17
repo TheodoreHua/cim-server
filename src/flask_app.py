@@ -31,17 +31,14 @@ def handle_connect():
             {**DEFAULT_DATA, "success": False, "flags": ["version_missing"]},
         )
         return disconnect()
-    if username is None:
-        emit(
-            "connect_response",
-            {**DEFAULT_DATA, "success": False, "flags": ["username_missing"]},
-        )
-        return disconnect()
 
     flags = []
     additional_data = {}
 
-    if any(client.username == username for client in clients.values()):
+    if username is None:
+        flags.append("username_missing")
+        username = f"Anonymous-{secrets.token_hex(4)}"
+    elif any(client.username == username for client in clients.values()):
         flags.append("username_taken")
         username = f"{username}-{secrets.token_hex(4)}"
 
@@ -51,9 +48,9 @@ def handle_connect():
         {
             **DEFAULT_DATA,
             "success": True,
+            "motd": MOTD,
             "flags": [],
             "username": username,
-            "motd": MOTD,
             **additional_data,
         },
     )
