@@ -15,6 +15,7 @@ clients = {}
 MOTD = "Welcome to the CIM server!"
 LENGTH_LIMIT = 10_000  # characters in a message
 USERNAME_REGEX = r"^[a-zA-Z0-9_-]{3,24}$"
+USERNAME_STR_REQUIREMENTS = "Your username must be: 3-24 characters; containing only letters, numbers, underscores, and hyphens."
 DEFAULT_DATA = {"server_version": VERSION}
 
 
@@ -110,12 +111,10 @@ def handle_message(data):
         return disconnect()
     if len(data["message"]) > LENGTH_LIMIT:
         emit(
-            "global_error",
+            "server_message",
             {
                 **DEFAULT_DATA,
-                "fatal": False,
-                "type": "message_too_long",
-                "message": "Message too long.",
+                "message": f"Your message was too long to send, the limit is {LENGTH_LIMIT:,} characters.",
             },
         )
         return
@@ -158,6 +157,13 @@ def handle_update_username(data):
         )
         return
     if not re.fullmatch(USERNAME_REGEX, data):
+        emit(
+            "server_message",
+            {
+                **DEFAULT_DATA,
+                "message": USERNAME_STR_REQUIREMENTS,
+            },
+        )
         emit(
             "username_update_response",
             {**DEFAULT_DATA, "success": False, "flags": ["username_invalid"]},
