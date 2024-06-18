@@ -1,5 +1,5 @@
-import secrets
 import re
+import secrets
 
 from flask import Flask, request, jsonify
 from flask_socketio import SocketIO, emit, disconnect
@@ -17,6 +17,8 @@ LENGTH_LIMIT = 10_000  # characters in a message
 USERNAME_REGEX = r"^[a-zA-Z0-9_-]{3,24}$"
 USERNAME_STR_REQUIREMENTS = "Your username must be: 3-24 characters; containing only letters, numbers, underscores, and hyphens."
 DEFAULT_DATA = {"server_version": VERSION}
+
+debug = False
 
 
 @app.route("/")
@@ -51,7 +53,8 @@ def online():
 
 @socketio.on("connect")
 def handle_connect():
-    print(f"Client {request.sid} connected")
+    if debug:
+        print(f"Client {request.sid} connected")
     client_version = request.headers.get("client-version")
     username = request.headers.get("username")
     if client_version is None:
@@ -87,6 +90,16 @@ def handle_connect():
             **additional_data,
         },
     )
+    if (
+        "username_invalid" in flags
+    ):  # send username requirements if invalid -- sent after connect_response
+        emit(
+            "server_message",
+            {
+                **DEFAULT_DATA,
+                "message": USERNAME_STR_REQUIREMENTS,
+            },
+        )
     emit(
         "connect_broadcast",
         {**DEFAULT_DATA, "username": username},
@@ -97,7 +110,8 @@ def handle_connect():
 
 @socketio.on("message")
 def handle_message(data):
-    print(f"Client {request.sid} sent message: {data}")
+    if debug:
+        print(f"Client {request.sid} sent message: {data}")
     if request.sid not in clients:
         emit(
             "global_error",
@@ -132,7 +146,8 @@ def handle_message(data):
 
 @socketio.on("username_update")
 def handle_update_username(data):
-    print(f"Client {request.sid} updated username to: {data}")
+    if debug:
+        print(f"Client {request.sid} requested username update: {data}")
     if request.sid not in clients:
         emit(
             "global_error",
@@ -191,7 +206,8 @@ def handle_update_username(data):
 
 @socketio.on("disconnect")
 def handle_disconnect():
-    print(f"Client {request.sid} disconnected")
+    if debug:
+        print(f"Client {request.sid} disconnected")
     if request.sid in clients:
         emit(
             "disconnect_broadcast",
@@ -203,4 +219,21 @@ def handle_disconnect():
 
 
 if __name__ == "__main__":
-    socketio.run(app, debug=True)
+    import argparse
+
+    parser = argparse.ArgumentParser(
+        description="CIM (Command [Line] Instant Messenger) Server"
+    )
+    parser.add_argument(
+        "--debug",
+        action="store_true",
+        help="Enable debug mode for Flask, and enable verbose logging for the server.",
+    )
+
+    parse = parser.parse_args()
+    debug = parse.debug
+    # TODO: Migrate to logging module
+
+    # We are using gevent, so the default server is production-ready.
+    # However, the user can still use a production WSGI server manually if they wish.
+    socketio.run(app, port=61824, debug=debug, use_reloader=debug, log_output=debug)
