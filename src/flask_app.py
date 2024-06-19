@@ -236,4 +236,4 @@ if __name__ == "__main__":
 
     # We are using gevent, so the default server is production-ready.
     # However, the user can still use a production WSGI server manually if they wish.
-    socketio.run(app, port=61824, debug=debug, use_reloader=debug, log_output=debug)
+    socketio.run(app, host="0.0.0.0", port=61824, debug=debug, use_reloader=debug, log_output=debug)
