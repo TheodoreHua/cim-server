@@ -225,6 +225,9 @@ if __name__ == "__main__":
         description="CIM (Command [Line] Instant Messenger) Server"
     )
     parser.add_argument(
+        "-p", "--port", type=int, default=61824, help="The port to run the server on."
+    )
+    parser.add_argument(
         "--debug",
         action="store_true",
         help="Enable debug mode for Flask, and enable verbose logging for the server.",
@@ -236,4 +239,11 @@ if __name__ == "__main__":
 
     # We are using gevent, so the default server is production-ready.
     # However, the user can still use a production WSGI server manually if they wish.
-    socketio.run(app, host="0.0.0.0", port=61824, debug=debug, use_reloader=debug, log_output=debug)
+    socketio.run(
+        app,
+        host="0.0.0.0",
+        port=parse.port,
+        debug=debug,
+        use_reloader=debug,
+        log_output=debug,
+    )
